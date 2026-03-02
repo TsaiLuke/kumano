@@ -95,7 +95,14 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
 
       <div className="flex-1 min-h-0 cursor-crosshair">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={chartData} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
+          <AreaChart 
+            data={chartData} 
+            onClick={handleChartClick}
+            onMouseDown={handleMouseDown} 
+            onMouseMove={handleMouseMove} 
+            onMouseUp={handleMouseUp} 
+            margin={{ top: 10, right: 30, left: 10, bottom: 20 }}
+          >
             <defs>
               <linearGradient id="dynamicFill" x1="0" y1="0" x2="1" y2="0">
                 {gradientStops ? (<><stop offset="0%" stopColor="#3b82f6" stopOpacity={0.1} /><stop offset={`${gradientStops.start}%`} stopColor="#3b82f6" stopOpacity={0.1} /><stop offset={`${gradientStops.start}%`} stopColor="#f43f5e" stopOpacity={0.4} /><stop offset={`${gradientStops.end}%`} stopColor="#f43f5e" stopOpacity={0.4} /><stop offset={`${gradientStops.end}%`} stopColor="#3b82f6" stopOpacity={0.1} /><stop offset="100%" stopColor="#3b82f6" stopOpacity={0.1} /></>) : (<stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />)}
