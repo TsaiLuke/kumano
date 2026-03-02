@@ -1,0 +1,6 @@
+gpxpy
+exif
+pandas
+geopy
+Pillow
+python-dateutil
