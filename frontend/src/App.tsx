@@ -13,10 +13,8 @@ function App() {
   const [mapCenterPoint, setMapCenterPoint] = useState<{ lat: number, lon: number, t: number } | null>(null);
   const [rangeSelection, setRangeSelection] = useState<TrackPoint[] | null>(null);
   
-  // UI States
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
-  
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +37,7 @@ function App() {
   const handleSegmentClick = (segment: SegmentData) => {
     setSelectedSegment(segment.segment_number);
     setMapCenterPoint({ lat: segment.mid_lat, lon: segment.mid_lon, t: Date.now() });
-    if (window.innerWidth < 768) setIsSidebarOpen(false); // Auto-close on mobile
+    if (window.innerWidth < 768) setIsSidebarOpen(false);
   };
 
   const handleChartPointClick = (point: TrackPoint) => {
@@ -54,22 +52,19 @@ function App() {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-slate-900 flex-col gap-4">
         <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-400 font-mono text-xs uppercase tracking-widest text-center px-4">Kumano Earth <br/> Optimizing Experience...</p>
+        <p className="text-slate-400 font-mono text-xs uppercase tracking-widest text-center px-4">Kumano Earth <br/> Finalizing...</p>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="w-screen h-screen flex items-center justify-center bg-red-50 text-red-600 font-bold">
-        Error: {error || 'No data found'}
-      </div>
+      <div className="w-screen h-screen flex items-center justify-center bg-red-50 text-red-600 font-bold">Error: {error}</div>
     );
   }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900 relative">
-      {/* Mobile Toggle Button */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="fixed top-4 left-4 z-50 p-3 bg-slate-900 text-white rounded-full shadow-2xl md:hidden active:scale-90 transition-transform"
@@ -77,14 +72,14 @@ function App() {
         <Menu size={20} />
       </button>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {isSidebarOpen && (
           <motion.div 
             initial={{ x: -320 }}
             animate={{ x: 0 }}
             exit={{ x: -320 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-y-0 left-0 z-40 md:relative"
+            transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+            className="fixed inset-y-0 left-0 z-40 md:relative w-80 flex-shrink-0"
           >
             <Sidebar 
               data={data} 
@@ -95,7 +90,7 @@ function App() {
         )}
       </AnimatePresence>
       
-      <main className="flex-1 flex flex-col relative min-w-0">
+      <main className="flex-1 flex flex-col relative min-w-0 h-full">
         <div className="flex-1 relative">
           <MapComponent 
             data={data}
@@ -108,20 +103,20 @@ function App() {
           />
         </div>
         
-        {/* Collapsible Chart Section */}
-        <div className="relative z-20">
+        {/* Fixed Toggle Tab */}
+        <div className="relative z-30">
           <button 
             onClick={() => setIsChartExpanded(!isChartExpanded)}
-            className="absolute top-[-32px] left-1/2 -translate-x-1/2 px-4 py-1 bg-white border border-slate-200 border-b-0 rounded-t-lg shadow-lg flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-blue-600 transition-colors"
+            className="absolute top-[-36px] left-1/2 -translate-x-1/2 px-6 py-2 bg-white border border-slate-200 rounded-t-xl shadow-[0_-4px_15px_rgba(0,0,0,0.1)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all hover:bg-slate-50"
           >
-            {isChartExpanded ? <ChevronDown size={14} /> : <ChevronUp size={14} />}
-            {isChartExpanded ? '隱藏剖面圖' : '查看海拔數據'}
+            {isChartExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
+            {isChartExpanded ? '收起剖面圖' : '查看剖面圖'}
           </button>
           
           <motion.div
             initial={false}
-            animate={{ height: isChartExpanded ? 'auto' : 0, opacity: isChartExpanded ? 1 : 0 }}
-            className="overflow-hidden bg-white shadow-[0_-10px_30px_rgba(0,0,0,0.1)]"
+            animate={{ height: isChartExpanded ? 'auto' : 0 }}
+            className="bg-white overflow-visible"
           >
             <ElevationChart 
               data={data} 
@@ -132,12 +127,8 @@ function App() {
         </div>
       </main>
 
-      {/* Backdrop for mobile sidebar */}
       {isSidebarOpen && (
-        <div 
-          onClick={() => setIsSidebarOpen(false)}
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 md:hidden"
-        />
+        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden" />
       )}
     </div>
   );
