@@ -38,7 +38,7 @@ function App() {
     setMapCenterPoint({ lat: point.lat, lon: point.lon, t: Date.now() });
   };
 
-  const handleRangeSelect = (points: TrackPoint[]) => {
+  const handleRangeSelect = (points: TrackPoint[] | null) => {
     setRangeSelection(points);
   };
 

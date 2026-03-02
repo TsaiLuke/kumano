@@ -54,6 +54,13 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
   const handleMouseDown = (e: any) => { if (e && e.activeTooltipIndex !== undefined) { setRefAreaLeft(e.activeTooltipIndex); setRefAreaRight(e.activeTooltipIndex); setIsSelecting(true); } };
   const handleMouseMove = (e: any) => { if (isSelecting && e && e.activeTooltipIndex !== undefined) { setRefAreaRight(e.activeTooltipIndex); const stats = calculateStats(refAreaLeft!, e.activeTooltipIndex); setSelectedStats(stats); } };
   const handleMouseUp = () => { if (isSelecting && refAreaLeft !== null && refAreaRight !== null) { const stats = calculateStats(refAreaLeft, refAreaRight); if (stats) onRangeSelect(stats.points); } setIsSelecting(false); };
+  
+  const handleChartClick = (state: any) => {
+    if (!isSelecting && state && state.activePayload && state.activePayload.length > 0) {
+      onPointClick(state.activePayload[0].payload.raw);
+    }
+  };
+
   const clearSelection = () => { setRefAreaLeft(null); setRefAreaRight(null); setSelectedStats(null); onRangeSelect(null); };
 
   if (chartData.length === 0) return null;
