@@ -109,11 +109,23 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart 
             data={chartData} 
-            onMouseDown={(e) => e && startSelection(e.activeTooltipIndex)}
-            onMouseMove={(e) => e && updateSelection(e.activeTooltipIndex)}
+            onMouseDown={(e) => {
+              const idx = typeof e?.activeTooltipIndex === 'number' ? e.activeTooltipIndex : null;
+              if (idx !== null) startSelection(idx);
+            }}
+            onMouseMove={(e) => {
+              const idx = typeof e?.activeTooltipIndex === 'number' ? e.activeTooltipIndex : null;
+              if (idx !== null) updateSelection(idx);
+            }}
             onMouseUp={endSelection}
-            onTouchStart={(e) => e && e.activeTooltipIndex !== undefined && startSelection(e.activeTooltipIndex)}
-            onTouchMove={(e) => e && e.activeTooltipIndex !== undefined && updateSelection(e.activeTooltipIndex)}
+            onTouchStart={(e) => {
+              const idx = typeof e?.activeTooltipIndex === 'number' ? e.activeTooltipIndex : null;
+              if (idx !== null) startSelection(idx);
+            }}
+            onTouchMove={(e) => {
+              const idx = typeof e?.activeTooltipIndex === 'number' ? e.activeTooltipIndex : null;
+              if (idx !== null) updateSelection(idx);
+            }}
             onTouchEnd={endSelection}
             onClick={handleChartClick}
             margin={{ top: 5, right: 10, left: 0, bottom: 5 }}
@@ -121,10 +133,10 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
             <defs>
               <linearGradient id="dynamicFill" x1="0" y1="0" x2="1" y2="0">
                 <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.1} />
-                <stop offset={`${(refAreaLeft || 0) / chartData.length * 100}%`} stopColor="#3b82f6" stopOpacity={0.1} />
-                <stop offset={`${(refAreaLeft || 0) / chartData.length * 100}%`} stopColor="#f43f5e" stopOpacity={0.4} />
-                <stop offset={`${(refAreaRight || 0) / chartData.length * 100}%`} stopColor="#f43f5e" stopOpacity={0.4} />
-                <stop offset={`${(refAreaRight || 0) / chartData.length * 100}%`} stopColor="#3b82f6" stopOpacity={0.1} />
+                <stop offset={`${refAreaLeft !== null ? (refAreaLeft / chartData.length * 100) : 0}%`} stopColor="#3b82f6" stopOpacity={0.1} />
+                <stop offset={`${refAreaLeft !== null ? (refAreaLeft / chartData.length * 100) : 0}%`} stopColor="#f43f5e" stopOpacity={0.4} />
+                <stop offset={`${refAreaRight !== null ? (refAreaRight / chartData.length * 100) : 0}%`} stopColor="#f43f5e" stopOpacity={0.4} />
+                <stop offset={`${refAreaRight !== null ? (refAreaRight / chartData.length * 100) : 0}%`} stopColor="#3b82f6" stopOpacity={0.1} />
                 <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.1} />
               </linearGradient>
             </defs>
