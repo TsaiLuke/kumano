@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea, CartesianGrid } from 'recharts';
 import type { KumanoData, TrackPoint } from './types';
-import { Clock, TrendingUp, Activity, Ruler, Heart, TrendingDown } from 'lucide-react';
+import { Clock, TrendingUp, Ruler, Heart, TrendingDown } from 'lucide-react';
 
 interface Props {
   data: KumanoData;
