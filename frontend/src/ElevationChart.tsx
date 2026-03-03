@@ -38,37 +38,13 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
       if (selectedPoints[i].hr) { hrSum += selectedPoints[i].hr!; hrCount++; }
     }
     const durationSec = (new Date(endP.time).getTime() - new Date(startP.time).getTime()) / 1000;
-    const pace = dist > 0.05 ? (durationSec / 60) / dist : 0;
-    return { dist: dist.toFixed(2), gain: Math.round(gain), loss: Math.round(loss), duration: Math.floor(durationSec / 60), pace: pace > 0 ? `${Math.floor(pace)}'${Math.round((pace % 1) * 60).toString().padStart(2, '0')}` : '--', avgHr: hrCount > 0 ? Math.round(hrSum / hrCount) : null, points: selectedPoints };
+    return { dist: dist.toFixed(2), gain: Math.round(gain), loss: Math.round(loss), duration: Math.floor(durationSec / 60), avgHr: hrCount > 0 ? Math.round(hrSum / hrCount) : null, points: selectedPoints };
   }, [chartData]);
 
-  const startSelection = (idx: number) => {
-    setRefAreaLeft(idx);
-    setRefAreaRight(idx);
-    setIsSelecting(true);
-  };
-
-  const updateSelection = (idx: number) => {
-    if (isSelecting && refAreaLeft !== null) {
-      setRefAreaRight(idx);
-      setSelectedStats(calculateStats(refAreaLeft, idx));
-    }
-  };
-
-  const endSelection = () => {
-    if (isSelecting && refAreaLeft !== null && refAreaRight !== null) {
-      const stats = calculateStats(refAreaLeft, refAreaRight);
-      if (stats) onRangeSelect(stats.points);
-    }
-    setIsSelecting(false);
-  };
-
-  const clearSelection = () => {
-    setRefAreaLeft(null);
-    setRefAreaRight(null);
-    setSelectedStats(null);
-    onRangeSelect(null);
-  };
+  const startSelection = (idx: number) => { setRefAreaLeft(idx); setRefAreaRight(idx); setIsSelecting(true); };
+  const updateSelection = (idx: number) => { if (isSelecting && refAreaLeft !== null) { setRefAreaRight(idx); setSelectedStats(calculateStats(refAreaLeft, idx)); } };
+  const endSelection = () => { if (isSelecting && refAreaLeft !== null && refAreaRight !== null) { const stats = calculateStats(refAreaLeft, refAreaRight); if (stats) onRangeSelect(stats.points); } setIsSelecting(false); };
+  const clearSelection = () => { setRefAreaLeft(null); setRefAreaRight(null); setSelectedStats(null); onRangeSelect(null); };
 
   const handleChartClick = (state: any) => {
     if (!isSelecting && state?.activePayload?.[0]?.payload?.raw) {
@@ -89,10 +65,9 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
   if (chartData.length === 0) return null;
 
   return (
-    <div className="relative w-full h-40 md:h-64 bg-white/95 backdrop-blur-md border-t border-slate-200 p-2 md:p-4 shadow-[0_-10px_40px_rgba(0,0,0,0.1)] flex flex-col select-none touch-none">
-      {/* Dynamic Stats Panel - High Z-index */}
+    <div className="relative w-full h-44 md:h-64 bg-white/95 border-t border-slate-200 p-2 md:p-4 flex flex-col select-none touch-none">
       {selectedStats && (
-        <div className="absolute top-[-70px] md:top-[-90px] left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur text-white px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl shadow-2xl flex items-center gap-3 md:gap-8 border border-white/20 z-[100] animate-in fade-in zoom-in duration-200 min-w-[280px] md:min-w-0 justify-center">
+        <div className="absolute top-[-65px] md:top-[-85px] left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur text-white px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl shadow-2xl flex items-center gap-2 md:gap-8 border border-white/20 z-[100] animate-in fade-in zoom-in duration-200 min-w-[280px] md:min-w-0 justify-center pointer-events-auto">
           <div className="flex items-center gap-1 md:gap-2 border-r border-white/10 pr-2 md:pr-4">
             <Ruler size={12} className="text-blue-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.dist}k</p>
           </div>
@@ -105,7 +80,12 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
           <div className="flex items-center gap-1 md:gap-2 border-r border-white/10 pr-2 md:pr-4">
             <Clock size={12} className="text-amber-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.duration}m</p>
           </div>
-          <button onClick={clearSelection} className="p-1 hover:bg-white/10 rounded-full transition-colors text-white"><span className="text-xs">✕</span></button>
+          {selectedStats.avgHr && (
+            <div className="hidden sm:flex items-center gap-1 md:gap-2 border-r border-white/10 pr-4">
+              <Heart size={12} className="text-rose-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.avgHr}</p>
+            </div>
+          )}
+          <button onClick={(e) => { e.stopPropagation(); clearSelection(); }} className="p-1 hover:bg-white/10 rounded-full transition-colors text-white"><span className="text-xs">✕</span></button>
         </div>
       )}
 
@@ -136,20 +116,10 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="dist" hide />
             <YAxis hide domain={['auto', 'auto']} />
-            <Tooltip 
-              isAnimationActive={false} 
-              wrapperStyle={{ pointerEvents: 'none', zIndex: 50 }}
-              content={({ active, payload }) => (active && payload && payload.length && !isSelecting) ? (<div className="bg-slate-900 text-white p-1.5 rounded text-[9px] font-mono shadow-xl border border-white/10">{payload[0].payload.dist}km | {payload[0].payload.ele}m</div>) : null} 
-            />
+            <Tooltip isAnimationActive={false} wrapperStyle={{ pointerEvents: 'none' }} content={({ active, payload }) => (active && payload && payload.length && !isSelecting) ? (<div className="bg-slate-900 text-white p-1.5 rounded text-[9px] font-mono shadow-xl border border-white/10">{payload[0].payload.dist}km | {payload[0].payload.ele}m</div>) : null} />
             <Area type="monotone" dataKey="ele" stroke="#3b82f6" strokeWidth={2} fill="url(#dynamicFill)" isAnimationActive={false} activeDot={{ r: 3, fill: '#3b82f6', stroke: '#fff' }} />
             {refAreaLeft !== null && refAreaRight !== null && (
-              <ReferenceArea 
-                x1={chartData[Math.min(refAreaLeft, refAreaRight)].dist} 
-                x2={chartData[Math.max(refAreaLeft, refAreaRight)].dist} 
-                fill="#000" 
-                fillOpacity={0.05} 
-                strokeOpacity={0} 
-              />
+              <ReferenceArea x1={chartData[Math.min(refAreaLeft, refAreaRight)].dist} x2={chartData[Math.max(refAreaLeft, refAreaRight)].dist} fill="#000" fillOpacity={0.05} strokeOpacity={0} />
             )}
           </AreaChart>
         </ResponsiveContainer>
