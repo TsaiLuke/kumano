@@ -43,7 +43,14 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
 
   const startSelection = (idx: number) => { setRefAreaLeft(idx); setRefAreaRight(idx); setIsSelecting(true); };
   const updateSelection = (idx: number) => { if (isSelecting && refAreaLeft !== null) { setRefAreaRight(idx); setSelectedStats(calculateStats(refAreaLeft, idx)); } };
-  const endSelection = () => { if (isSelecting && refAreaLeft !== null && refAreaRight !== null) { const stats = calculateStats(refAreaLeft, refAreaRight); if (stats) onRangeSelect(stats.points); } setIsSelecting(false); };
+  const endSelection = () => {
+    if (isSelecting && refAreaLeft !== null && refAreaRight !== null) {
+      const stats = calculateStats(refAreaLeft, refAreaRight);
+      if (stats) onRangeSelect(stats.points);
+    }
+    setIsSelecting(false);
+  };
+
   const clearSelection = () => { setRefAreaLeft(null); setRefAreaRight(null); setSelectedStats(null); onRangeSelect(null); };
 
   const handleChartClick = (state: any) => {
@@ -112,12 +119,20 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
                 <stop offset={`${selectionEndPercent}%`} stopColor="#3b82f6" stopOpacity={0.1} />
                 <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.1} />
               </linearGradient>
+              <linearGradient id="dynamicStroke" x1="0" y1="0" x2="1" y2="0">
+                <stop offset="0%" stopColor="#3b82f6" />
+                <stop offset={`${selectionStartPercent}%`} stopColor="#3b82f6" />
+                <stop offset={`${selectionStartPercent}%`} stopColor="#f43f5e" />
+                <stop offset={`${selectionEndPercent}%`} stopColor="#f43f5e" />
+                <stop offset={`${selectionEndPercent}%`} stopColor="#3b82f6" />
+                <stop offset="100%" stopColor="#3b82f6" />
+              </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="dist" hide />
             <YAxis hide domain={['auto', 'auto']} />
             <Tooltip isAnimationActive={false} wrapperStyle={{ pointerEvents: 'none' }} content={({ active, payload }) => (active && payload && payload.length && !isSelecting) ? (<div className="bg-slate-900 text-white p-1.5 rounded text-[9px] font-mono shadow-xl border border-white/10">{payload[0].payload.dist}km | {payload[0].payload.ele}m</div>) : null} />
-            <Area type="monotone" dataKey="ele" stroke="#3b82f6" strokeWidth={2} fill="url(#dynamicFill)" isAnimationActive={false} activeDot={{ r: 3, fill: '#3b82f6', stroke: '#fff' }} />
+            <Area type="monotone" dataKey="ele" stroke="url(#dynamicStroke)" strokeWidth={3} fill="url(#dynamicFill)" isAnimationActive={false} activeDot={{ r: 3, fill: '#3b82f6', stroke: '#fff' }} />
             {refAreaLeft !== null && refAreaRight !== null && (
               <ReferenceArea x1={chartData[Math.min(refAreaLeft, refAreaRight)].dist} x2={chartData[Math.max(refAreaLeft, refAreaRight)].dist} fill="#000" fillOpacity={0.05} strokeOpacity={0} />
             )}

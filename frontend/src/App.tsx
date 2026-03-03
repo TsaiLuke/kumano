@@ -52,7 +52,7 @@ function App() {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-slate-900 flex-col gap-4">
         <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-400 font-mono text-xs uppercase tracking-widest text-center px-4">Final Build...</p>
+        <p className="text-slate-400 font-mono text-xs uppercase tracking-widest text-center px-4">Kumano Earth <br/> Final Polishing...</p>
       </div>
     );
   }
@@ -64,12 +64,26 @@ function App() {
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900 relative">
+    <div className="flex h-screen w-screen overflow-hidden bg-slate-950 text-slate-900 relative">
+      {/* Map is the absolute background layer */}
+      <div className="absolute inset-0 z-0">
+        <MapComponent 
+          data={data}
+          onSegmentClick={handleSegmentClick}
+          selectedSegment={selectedSegment}
+          activePhotoGroup={activePhotoGroup}
+          setActivePhotoGroup={setActivePhotoGroup}
+          mapCenterPoint={mapCenterPoint}
+          rangeSelection={rangeSelection}
+        />
+      </div>
+
+      {/* Mobile Toggle Button */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="fixed top-4 left-4 z-[100] p-2.5 bg-slate-900 text-white rounded-lg shadow-2xl md:hidden active:scale-95 transition-all"
+        className="fixed top-4 left-4 z-[100] p-3 bg-slate-900 text-white rounded-xl shadow-2xl md:hidden active:scale-90 transition-all border border-white/10"
       >
-        {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
+        {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
 
       <AnimatePresence>
@@ -78,10 +92,10 @@ function App() {
             initial={{ x: -320 }}
             animate={{ x: 0 }}
             exit={{ x: -320 }}
-            transition={{ type: 'tween', duration: 0.3 }}
-            className="fixed inset-y-0 left-0 z-50 md:relative w-80 flex-shrink-0 bg-white"
+            transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+            className="fixed inset-y-0 left-0 z-[90] md:relative w-80 flex-shrink-0 bg-white shadow-2xl"
           >
-            <div className="h-full pt-16 md:pt-0">
+            <div className="h-full pt-20 md:pt-0">
               <Sidebar 
                 data={data} 
                 onSegmentClick={handleSegmentClick} 
@@ -92,49 +106,39 @@ function App() {
         )}
       </AnimatePresence>
       
-      <main className="flex-1 relative flex flex-col min-w-0 h-full">
-        {/* Fullscreen Map Layer */}
-        <div className="absolute inset-0 z-0">
-          <MapComponent 
-            data={data}
-            onSegmentClick={handleSegmentClick}
-            selectedSegment={selectedSegment}
-            activePhotoGroup={activePhotoGroup}
-            setActivePhotoGroup={setActivePhotoGroup}
-            mapCenterPoint={mapCenterPoint}
-            rangeSelection={rangeSelection}
-          />
-        </div>
+      {/* Floating UI Container */}
+      <main className="flex-1 relative flex flex-col pointer-events-none min-w-0">
+        <div className="flex-1" />
         
-        {/* Floating Controls Overlay */}
-        <div className="absolute bottom-0 left-0 right-0 z-40 flex flex-col pointer-events-none">
-          <div className="flex justify-center w-full pb-4">
-            <button 
-              onClick={() => setIsChartExpanded(!isChartExpanded)}
-              className={`pointer-events-auto px-6 py-2.5 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-2xl flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all active:scale-95 ${isChartExpanded ? 'mb-0' : 'mb-[100px] md:mb-[40px]'}`}
-            >
-              {isChartExpanded ? <ChevronDown size={16} className="text-blue-500" /> : <ChevronUp size={16} className="text-blue-500" />}
-              {isChartExpanded ? '隱藏剖面' : '查看海拔數據'}
-            </button>
-          </div>
-          
-          <motion.div
-            initial={false}
-            animate={{ height: isChartExpanded ? 'auto' : 0 }}
-            transition={{ type: 'tween', duration: 0.3 }}
-            className="bg-white/95 backdrop-blur-md overflow-hidden pointer-events-auto"
+        {/* Toggle Button for Chart */}
+        <div className="flex justify-center w-full pb-4 md:pb-6">
+          <button 
+            onClick={() => setIsChartExpanded(!isChartExpanded)}
+            className={`pointer-events-auto px-6 py-2.5 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-[0_-10px_25px_rgba(0,0,0,0.3)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all active:scale-95 ${isChartExpanded ? 'mb-0' : 'mb-[100px] md:mb-[40px]'}`}
           >
-            <ElevationChart 
-              data={data} 
-              onPointClick={handleChartPointClick}
-              onRangeSelect={handleRangeSelect}
-            />
-          </motion.div>
+            {isChartExpanded ? <ChevronDown size={16} className="text-blue-500" /> : <ChevronUp size={16} className="text-blue-500" />}
+            {isChartExpanded ? '收起剖面' : '分析海拔數據'}
+          </button>
         </div>
+
+        {/* Floating Chart Panel */}
+        <motion.div
+          initial={false}
+          animate={{ height: isChartExpanded ? 'auto' : 0, opacity: isChartExpanded ? 1 : 0 }}
+          transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+          className="bg-white/95 backdrop-blur-md border-t border-slate-200 pointer-events-auto overflow-hidden flex-shrink-0"
+        >
+          <ElevationChart 
+            data={data} 
+            onPointClick={handleChartPointClick}
+            onRangeSelect={handleRangeSelect}
+          />
+        </motion.div>
       </main>
 
+      {/* Backdrop for mobile sidebar */}
       {isSidebarOpen && (
-        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden" />
+        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] md:hidden" />
       )}
     </div>
   );
