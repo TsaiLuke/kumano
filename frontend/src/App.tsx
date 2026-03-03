@@ -65,7 +65,6 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900 relative">
-      {/* Mobile Toggle Button - Moved away from title */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="fixed top-4 left-4 z-50 p-2.5 bg-slate-900 text-white rounded-lg shadow-2xl md:hidden active:scale-95 transition-all"
@@ -82,16 +81,18 @@ function App() {
             transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
             className="fixed inset-y-0 left-0 z-40 md:relative w-80 flex-shrink-0"
           >
-            <Sidebar 
-              data={data} 
-              onSegmentClick={handleSegmentClick} 
-              selectedSegment={selectedSegment}
-            />
+            <div className="h-full pt-14 md:pt-0"> {/* Added pt-14 for mobile header clearance */}
+              <Sidebar 
+                data={data} 
+                onSegmentClick={handleSegmentClick} 
+                selectedSegment={selectedSegment}
+              />
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
       
-      <main className="flex-1 flex flex-col relative min-w-0">
+      <main className="flex-1 flex flex-col relative min-w-0 h-full">
         <div className="flex-1 relative overflow-hidden">
           <MapComponent 
             data={data}
@@ -104,11 +105,11 @@ function App() {
           />
         </div>
         
-        {/* Toggle Button Container */}
-        <div className="relative z-30 h-0 flex items-center justify-center overflow-visible">
+        {/* Optimized Toggle Button */}
+        <div className="relative z-30 h-0 flex items-center justify-center">
           <button 
             onClick={() => setIsChartExpanded(!isChartExpanded)}
-            className={`absolute px-5 py-2 bg-white border border-slate-200 rounded-t-xl shadow-[0_-4px_15px_rgba(0,0,0,0.15)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all hover:bg-slate-50 active:scale-95 ${isChartExpanded ? 'bottom-0' : 'bottom-0 transform translate-y-[-10px] sm:translate-y-[-20px]'}`}
+            className={`absolute px-6 py-2.5 bg-white border border-slate-200 rounded-t-xl shadow-[0_-10px_20px_rgba(0,0,0,0.1)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all hover:bg-slate-50 active:scale-95 ${isChartExpanded ? 'bottom-0' : 'bottom-[20px] md:bottom-[40px]'}`}
           >
             {isChartExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
             {isChartExpanded ? '收起剖面' : '查看剖面數據'}

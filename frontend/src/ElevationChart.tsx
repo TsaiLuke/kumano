@@ -23,14 +23,6 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
     raw: p
   })), [flattenedTrack]);
 
-  const gradientStops = useMemo(() => {
-    if (refAreaLeft === null || refAreaRight === null || chartData.length === 0) return null;
-    const total = chartData.length;
-    const startIdx = Math.min(refAreaLeft, refAreaRight);
-    const endIdx = Math.max(refAreaLeft, refAreaRight);
-    return { start: (startIdx / (total - 1)) * 100, end: (endIdx / (total - 1)) * 100 };
-  }, [refAreaLeft, refAreaRight, chartData]);
-
   const calculateStats = useCallback((leftIdx: number, rightIdx: number) => {
     const start = Math.min(leftIdx, rightIdx);
     const end = Math.max(leftIdx, rightIdx);
@@ -50,43 +42,21 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
     return { dist: dist.toFixed(2), gain: Math.round(gain), loss: Math.round(loss), duration: Math.floor(durationSec / 60), pace: pace > 0 ? `${Math.floor(pace)}'${Math.round((pace % 1) * 60).toString().padStart(2, '0')}` : '--', avgHr: hrCount > 0 ? Math.round(hrSum / hrCount) : null, points: selectedPoints };
   }, [chartData]);
 
-  const handleMouseDown = (e: any) => {
-    const idx = e?.activeTooltipIndex;
-    if (typeof idx === 'number') {
-      setRefAreaLeft(idx);
-      setRefAreaRight(idx);
-      setIsSelecting(true);
-    }
-  };
-
-  const handleMouseMove = (e: any) => {
-    const idx = e?.activeTooltipIndex;
-    if (isSelecting && typeof idx === 'number') {
-      setRefAreaRight(idx);
-      setSelectedStats(calculateStats(refAreaLeft!, idx));
-    }
-  };
-
-  const handleMouseUp = () => {
-    if (isSelecting && refAreaLeft !== null && refAreaRight !== null) {
-      const stats = calculateStats(refAreaLeft, refAreaRight);
-      if (stats) onRangeSelect(stats.points);
-    }
-    setIsSelecting(false);
-  };
-
-  const clearSelection = () => {
-    setRefAreaLeft(null);
-    setRefAreaRight(null);
-    setSelectedStats(null);
-    onRangeSelect(null);
-  };
+  const startSelection = (idx: number) => { setRefAreaLeft(idx); setRefAreaRight(idx); setIsSelecting(true); };
+  const updateSelection = (idx: number) => { if (isSelecting && refAreaLeft !== null) { setRefAreaRight(idx); setSelectedStats(calculateStats(refAreaLeft, idx)); } };
+  const endSelection = () => { if (isSelecting && refAreaLeft !== null && refAreaRight !== null) { const stats = calculateStats(refAreaLeft, refAreaRight); if (stats) onRangeSelect(stats.points); } setIsSelecting(false); };
+  const clearSelection = () => { setRefAreaLeft(null); setRefAreaRight(null); setSelectedStats(null); onRangeSelect(null); };
 
   const handleChartClick = (state: any) => {
     if (!isSelecting && state?.activePayload?.[0]?.payload?.raw) {
       onPointClick(state.activePayload[0].payload.raw);
     }
   };
+
+  const currentSelectionIndices = useMemo(() => {
+    if (refAreaLeft === null || refAreaRight === null) return null;
+    return { start: Math.min(refAreaLeft, refAreaRight), end: Math.max(refAreaLeft, refAreaRight) };
+  }, [refAreaLeft, refAreaRight]);
 
   if (chartData.length === 0) return null;
 
@@ -117,37 +87,18 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
 
       <div className="flex-1 min-h-0 cursor-crosshair">
         <ResponsiveContainer width="100%" height="100%">
-          <AreaChart 
-            data={chartData} 
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onTouchStart={(e) => handleMouseDown(e)}
-            onTouchMove={(e) => handleMouseMove(e)}
-            onTouchEnd={handleMouseUp}
-            onClick={handleChartClick}
-            margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-          >
+          <AreaChart data={chartData} onMouseDown={(e) => e && startSelection(e.activeTooltipIndex)} onMouseMove={(e) => e && updateSelection(e.activeTooltipIndex)} onMouseUp={endSelection} onTouchStart={(e) => e && e.activeTooltipIndex !== undefined && startSelection(e.activeTooltipIndex)} onTouchMove={(e) => e && e.activeTooltipIndex !== undefined && updateSelection(e.activeTooltipIndex)} onTouchEnd={endSelection} onClick={handleChartClick} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
             <defs>
               <linearGradient id="dynamicFill" x1="0" y1="0" x2="1" y2="0">
-                <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.1} />
-                <stop offset={`${refAreaLeft !== null ? (refAreaLeft / chartData.length * 100) : 0}%`} stopColor="#3b82f6" stopOpacity={0.1} />
-                <stop offset={`${refAreaLeft !== null ? (refAreaLeft / chartData.length * 100) : 0}%`} stopColor="#f43f5e" stopOpacity={0.4} />
-                <stop offset={`${refAreaRight !== null ? (refAreaRight / chartData.length * 100) : 0}%`} stopColor="#f43f5e" stopOpacity={0.4} />
-                <stop offset={`${refAreaRight !== null ? (refAreaRight / chartData.length * 100) : 0}%`} stopColor="#3b82f6" stopOpacity={0.1} />
-                <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.1} />
+                {currentSelectionIndices ? (<><stop offset="0%" stopColor="#3b82f6" stopOpacity={0.1} /><stop offset={`${currentSelectionIndices.start / chartData.length * 100}%`} stopColor="#3b82f6" stopOpacity={0.1} /><stop offset={`${currentSelectionIndices.start / chartData.length * 100}%`} stopColor="#f43f5e" stopOpacity={0.4} /><stop offset={`${currentSelectionIndices.end / chartData.length * 100}%`} stopColor="#f43f5e" stopOpacity={0.4} /><stop offset={`${currentSelectionIndices.end / chartData.length * 100}%`} stopColor="#3b82f6" stopOpacity={0.1} /><stop offset="100%" stopColor="#3b82f6" stopOpacity={0.1} /></>) : (<stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />)}
               </linearGradient>
             </defs>
             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="dist" hide />
             <YAxis hide domain={['auto', 'auto']} />
-            <Tooltip 
-              isAnimationActive={false} 
-              pointerEvents="none"
-              content={({ active, payload }) => (active && payload && payload.length && !isSelecting) ? (<div className="bg-slate-900 text-white p-1.5 rounded text-[9px] font-mono shadow-xl border border-white/10">{payload[0].payload.dist}km | {payload[0].payload.ele}m</div>) : null} 
-            />
+            <Tooltip isAnimationActive={false} content={({ active, payload }) => (active && payload && payload.length && !isSelecting) ? (<div className="bg-slate-900 text-white p-1.5 rounded text-[9px] font-mono shadow-xl border border-white/10">{payload[0].payload.dist}km | {payload[0].payload.ele}m</div>) : null} />
             <Area type="monotone" dataKey="ele" stroke="#3b82f6" strokeWidth={2} fill="url(#dynamicFill)" isAnimationActive={false} activeDot={{ r: 3, fill: '#3b82f6', stroke: '#fff' }} />
-            {refAreaLeft !== null && refAreaRight !== null && (<ReferenceArea x1={chartData[refAreaLeft].dist} x2={chartData[refAreaRight].dist} fill="#000" fillOpacity={0.05} strokeOpacity={0} />)}
+            {currentSelectionIndices && (<ReferenceArea x1={chartData[currentSelectionIndices.start].dist} x2={chartData[currentSelectionIndices.end].dist} fill="#000" fillOpacity={0.05} strokeOpacity={0} />)}
           </AreaChart>
         </ResponsiveContainer>
       </div>
