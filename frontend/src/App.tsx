@@ -3,7 +3,7 @@ import type { KumanoData, PhotoData, SegmentData, TrackPoint } from './types';
 import MapComponent from './MapComponent';
 import Sidebar from './Sidebar';
 import ElevationChart from './ElevationChart';
-import { Menu, ChevronUp, ChevronDown } from 'lucide-react';
+import { Menu, ChevronUp, ChevronDown, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
@@ -52,7 +52,7 @@ function App() {
     return (
       <div className="w-screen h-screen flex items-center justify-center bg-slate-900 flex-col gap-4">
         <div className="w-10 h-10 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-slate-400 font-mono text-xs uppercase tracking-widest text-center px-4">Kumano Earth <br/> Finalizing...</p>
+        <p className="text-slate-400 font-mono text-xs uppercase tracking-widest text-center px-4">Kumano Earth <br/> Final Polishing...</p>
       </div>
     );
   }
@@ -65,11 +65,12 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900 relative">
+      {/* Mobile Toggle Button - Moved away from title */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="fixed top-4 left-4 z-50 p-3 bg-slate-900 text-white rounded-full shadow-2xl md:hidden active:scale-90 transition-transform"
+        className="fixed top-4 left-4 z-50 p-2.5 bg-slate-900 text-white rounded-lg shadow-2xl md:hidden active:scale-95 transition-all"
       >
-        <Menu size={20} />
+        {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
       </button>
 
       <AnimatePresence>
@@ -78,7 +79,7 @@ function App() {
             initial={{ x: -320 }}
             animate={{ x: 0 }}
             exit={{ x: -320 }}
-            transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
             className="fixed inset-y-0 left-0 z-40 md:relative w-80 flex-shrink-0"
           >
             <Sidebar 
@@ -90,8 +91,8 @@ function App() {
         )}
       </AnimatePresence>
       
-      <main className="flex-1 flex flex-col relative min-w-0 h-full">
-        <div className="flex-1 relative">
+      <main className="flex-1 flex flex-col relative min-w-0">
+        <div className="flex-1 relative overflow-hidden">
           <MapComponent 
             data={data}
             onSegmentClick={handleSegmentClick}
@@ -103,32 +104,33 @@ function App() {
           />
         </div>
         
-        {/* Fixed Toggle Tab */}
-        <div className="relative z-30">
+        {/* Toggle Button Container */}
+        <div className="relative z-30 h-0 flex items-center justify-center overflow-visible">
           <button 
             onClick={() => setIsChartExpanded(!isChartExpanded)}
-            className="absolute top-[-36px] left-1/2 -translate-x-1/2 px-6 py-2 bg-white border border-slate-200 rounded-t-xl shadow-[0_-4px_15px_rgba(0,0,0,0.1)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all hover:bg-slate-50"
+            className={`absolute px-5 py-2 bg-white border border-slate-200 rounded-t-xl shadow-[0_-4px_15px_rgba(0,0,0,0.15)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all hover:bg-slate-50 active:scale-95 ${isChartExpanded ? 'bottom-0' : 'bottom-0 transform translate-y-[-10px] sm:translate-y-[-20px]'}`}
           >
             {isChartExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-            {isChartExpanded ? '收起剖面圖' : '查看剖面圖'}
+            {isChartExpanded ? '收起剖面' : '查看剖面數據'}
           </button>
-          
-          <motion.div
-            initial={false}
-            animate={{ height: isChartExpanded ? 'auto' : 0 }}
-            className="bg-white overflow-visible"
-          >
-            <ElevationChart 
-              data={data} 
-              onPointClick={handleChartPointClick}
-              onRangeSelect={handleRangeSelect}
-            />
-          </motion.div>
         </div>
+
+        <motion.div
+          initial={false}
+          animate={{ height: isChartExpanded ? 'auto' : 0 }}
+          transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+          className="bg-white overflow-hidden flex-shrink-0"
+        >
+          <ElevationChart 
+            data={data} 
+            onPointClick={handleChartPointClick}
+            onRangeSelect={handleRangeSelect}
+          />
+        </motion.div>
       </main>
 
       {isSidebarOpen && (
-        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30 md:hidden" />
+        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 md:hidden" />
       )}
     </div>
   );
