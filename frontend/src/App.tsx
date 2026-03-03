@@ -65,6 +65,7 @@ function App() {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-white text-slate-900 relative">
+      {/* Mobile Toggle Button */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
         className="fixed top-4 left-4 z-50 p-2.5 bg-slate-900 text-white rounded-lg shadow-2xl md:hidden active:scale-95 transition-all"
@@ -79,9 +80,9 @@ function App() {
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: 'spring', bounce: 0, duration: 0.3 }}
-            className="fixed inset-y-0 left-0 z-40 md:relative w-80 flex-shrink-0"
+            className="fixed inset-y-0 left-0 z-50 md:relative w-80 flex-shrink-0 bg-white"
           >
-            <div className="h-full pt-14 md:pt-0"> {/* Added pt-14 for mobile header clearance */}
+            <div className="h-full pt-16 md:pt-0">
               <Sidebar 
                 data={data} 
                 onSegmentClick={handleSegmentClick} 
@@ -92,8 +93,9 @@ function App() {
         )}
       </AnimatePresence>
       
-      <main className="flex-1 flex flex-col relative min-w-0 h-full">
-        <div className="flex-1 relative overflow-hidden">
+      <main className="flex-1 relative flex flex-col min-w-0">
+        {/* Map is now ABSOLUTE to fill entire background */}
+        <div className="absolute inset-0 z-0">
           <MapComponent 
             data={data}
             onSegmentClick={handleSegmentClick}
@@ -105,33 +107,38 @@ function App() {
           />
         </div>
         
-        {/* Optimized Toggle Button */}
-        <div className="relative z-30 h-0 flex items-center justify-center">
-          <button 
-            onClick={() => setIsChartExpanded(!isChartExpanded)}
-            className={`absolute px-6 py-2.5 bg-white border border-slate-200 rounded-t-xl shadow-[0_-10px_20px_rgba(0,0,0,0.1)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all hover:bg-slate-50 active:scale-95 ${isChartExpanded ? 'bottom-0' : 'bottom-[20px] md:bottom-[40px]'}`}
-          >
-            {isChartExpanded ? <ChevronDown size={16} /> : <ChevronUp size={16} />}
-            {isChartExpanded ? '收起剖面' : '查看剖面數據'}
-          </button>
-        </div>
+        {/* Floating Controls Layer */}
+        <div className="flex-1 pointer-events-none relative" />
 
-        <motion.div
-          initial={false}
-          animate={{ height: isChartExpanded ? 'auto' : 0 }}
-          transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-          className="bg-white overflow-hidden flex-shrink-0"
-        >
-          <ElevationChart 
-            data={data} 
-            onPointClick={handleChartPointClick}
-            onRangeSelect={handleRangeSelect}
-          />
-        </motion.div>
+        {/* Collapsible Chart Section - Floating on top of map */}
+        <div className="relative z-40 w-full pointer-events-auto">
+          <div className="flex justify-center w-full">
+            <button 
+              onClick={() => setIsChartExpanded(!isChartExpanded)}
+              className={`px-6 py-2.5 bg-white/95 backdrop-blur border border-slate-200 rounded-t-xl shadow-[0_-10px_25px_rgba(0,0,0,0.2)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all hover:bg-white active:scale-95 mb-[-1px] ${isChartExpanded ? '' : 'transform translate-y-[-80px] md:translate-y-[-40px]'}`}
+            >
+              {isChartExpanded ? <ChevronDown size={16} className="text-blue-500" /> : <ChevronUp size={16} className="text-blue-500" />}
+              {isChartExpanded ? '隱藏剖面' : '查看海拔剖面'}
+            </button>
+          </div>
+          
+          <motion.div
+            initial={false}
+            animate={{ height: isChartExpanded ? 'auto' : 0, y: isChartExpanded ? 0 : 100 }}
+            transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
+            className="bg-white/95 backdrop-blur overflow-hidden"
+          >
+            <ElevationChart 
+              data={data} 
+              onPointClick={handleChartPointClick}
+              onRangeSelect={handleRangeSelect}
+            />
+          </motion.div>
+        </div>
       </main>
 
       {isSidebarOpen && (
-        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/30 backdrop-blur-sm z-30 md:hidden" />
+        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40 md:hidden" />
       )}
     </div>
   );
