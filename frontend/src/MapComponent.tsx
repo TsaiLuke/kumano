@@ -129,8 +129,9 @@ const MapComponent: React.FC<Props> = ({
         initialViewState={{ latitude: data.trackSegments?.[0]?.[0]?.lat || 33.7125, longitude: data.trackSegments?.[0]?.[0]?.lon || 135.4536, zoom: isMobile ? 11 : 13, pitch: 45, bearing: 0 }}
         onZoom={e => setZoom(e.viewState.zoom)}
         onClick={(e) => {
-          // Only clear if we clicked the map canvas itself, not a marker/popup
-          if ((e.originalEvent.target as HTMLElement).classList.contains('mapboxgl-canvas')) {
+          // If the click is on the map canvas itself, clear everything
+          const target = e.originalEvent.target as HTMLElement;
+          if (target && target.classList.contains('mapboxgl-canvas')) {
             setActivePhotoGroup(null);
             onSegmentClick({ segment_number: null } as any);
           }
@@ -157,7 +158,7 @@ const MapComponent: React.FC<Props> = ({
           <Marker key={`lm-${i}`} latitude={lm.lat} longitude={lm.lon} anchor="bottom">
             <div className="flex flex-col items-center group">
               <div className="bg-white px-2 py-1 rounded shadow-lg border border-slate-200 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none text-[10px] font-bold text-slate-800 z-50">{lm.name}</div>
-              <div className="p-1.5 bg-indigo-600 rounded-full border-2 border-white shadow-xl scale-90 md:scale-110"><MapPin size={isMobile ? 14 : 20} className="text-white fill-white/20" /></div>
+              <div className="p-1.5 bg-indigo-600 rounded-full border-2 border-white shadow-xl scale-90 md:scale-110 pointer-events-auto"><MapPin size={isMobile ? 14 : 20} className="text-white fill-white/20" /></div>
             </div>
           </Marker>
         ))}
@@ -165,13 +166,13 @@ const MapComponent: React.FC<Props> = ({
         {(data.dayMarkers || []).map((dm, i) => (
           <React.Fragment key={`dm-${i}`}>
             <Marker latitude={dm.start.lat} longitude={dm.start.lon} anchor="bottom">
-              <div className="flex flex-col items-center scale-90 md:scale-125">
+              <div className="flex flex-col items-center scale-90 md:scale-125 pointer-events-auto">
                 <div className="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full mb-1 shadow-lg border border-white">D{dm.day} START</div>
                 <Navigation size={14} className="text-emerald-600 fill-emerald-600" />
               </div>
             </Marker>
             <Marker latitude={dm.end.lat} longitude={dm.end.lon} anchor="bottom">
-              <div className="flex flex-col items-center scale-90 md:scale-125">
+              <div className="flex flex-col items-center scale-90 md:scale-125 pointer-events-auto">
                 <div className="bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full mb-1 shadow-lg border border-white">D{dm.day} END</div>
                 <Flag size={14} className="text-rose-600 fill-rose-600" />
               </div>
@@ -179,7 +180,7 @@ const MapComponent: React.FC<Props> = ({
           </React.Fragment>
         ))}
 
-        <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
+        <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2 pointer-events-auto">
           <button onClick={e => { e.stopPropagation(); setExaggeration(prev => prev === 1.0 ? 1.5 : 1.0); }}
             className={`flex items-center gap-2 px-3 py-2 shadow-2xl rounded-xl text-xs font-black border transition-all ${exaggeration > 1.0 ? 'bg-blue-600 text-white border-blue-400' : 'bg-white/95 text-slate-700 border-slate-200'}`}>
             <TrendingUp size={16} /> {exaggeration > 1.0 ? '3D 增強中' : '標準地形'}
@@ -193,14 +194,14 @@ const MapComponent: React.FC<Props> = ({
         {(data.segments || []).map(seg => (
           <Marker key={`seg-${seg.segment_number}`} latitude={seg.mid_lat} longitude={seg.mid_lon} anchor="bottom" onClick={e => { e.originalEvent.stopPropagation(); onSegmentClick(seg); }}>
             <div 
-              className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-white/80 shadow-lg cursor-pointer text-[10px] font-black text-white transition-all hover:scale-125 ${selectedSegment === seg.segment_number ? 'bg-blue-600 scale-110 ring-4 ring-blue-500/30' : 'bg-slate-400/80 backdrop-blur-[2px]'}`}>
+              className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-white/80 shadow-lg cursor-pointer text-[10px] font-black text-white transition-all hover:scale-125 pointer-events-auto ${selectedSegment === seg.segment_number ? 'bg-blue-600 scale-110 ring-4 ring-blue-500/30' : 'bg-slate-400/80 backdrop-blur-[2px]'}`}>
               {seg.segment_number}
             </div>
           </Marker>
         ))}
 
-        {selectedSegmentData && (
-          <Popup latitude={selectedSegmentData.mid_lat} longitude={selectedSegmentData.mid_lon} onClose={() => onSegmentClick({ segment_number: -1 } as any)} closeButton={false} anchor="top" className="z-50 segment-popup">
+        {selectedSegmentData && selectedSegmentData.mid_lat && (
+          <Popup latitude={selectedSegmentData.mid_lat} longitude={selectedSegmentData.mid_lon} onClose={() => onSegmentClick({ segment_number: null } as any)} closeButton={false} anchor="top" className="z-50 segment-popup">
             <div className="p-3 bg-white rounded-lg shadow-xl border border-slate-100 min-w-[140px]">
               <div className="flex items-center justify-between mb-2">
                 <span className="text-xs font-black text-blue-600 uppercase">第 {selectedSegmentData.segment_number} 公里</span>
