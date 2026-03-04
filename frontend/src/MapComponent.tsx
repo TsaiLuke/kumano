@@ -3,7 +3,7 @@ import Map, { Source, Layer, Marker, NavigationControl, Popup } from 'react-map-
 import type { MapRef } from 'react-map-gl/mapbox';
 import type { KumanoData, PhotoData, SegmentData, TrackPoint } from './types';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { Camera, ChevronLeft, ChevronRight, Heart, Layers, MapPin, Flag, Navigation } from 'lucide-react';
+import { Camera, ChevronLeft, ChevronRight, Heart, Layers, MapPin, Flag, Navigation, TrendingUp, TrendingDown } from 'lucide-react';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
@@ -39,7 +39,6 @@ const MapComponent: React.FC<Props> = ({
   const [mapStyle, setMapStyle] = useState<keyof typeof MAP_STYLES>('outdoors');
   const [exaggeration, setExaggeration] = useState(1.0);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
-  const [hoveredSegment, setHoveredSegment] = useState<SegmentData | null>(null);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
