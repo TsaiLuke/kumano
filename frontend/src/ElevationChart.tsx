@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea, CartesianGrid, ReferenceLine } from 'recharts';
 import type { KumanoData, TrackPoint } from './types';
 import { Clock, TrendingUp, Ruler, Heart, TrendingDown } from 'lucide-react';
@@ -12,6 +12,7 @@ interface Props {
 
 const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, hoveredPoint }) => {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [refAreaLeft, setRefAreaLeft] = useState<number | null>(null);
   const [refAreaRight, setRefAreaRight] = useState<number | null>(null);
   const [selectedStats, setSelectedStats] = useState<any>(null);
@@ -42,32 +43,49 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
     return { dist: dist.toFixed(2), gain: Math.round(gain), loss: Math.round(loss), duration: Math.floor(durationSec / 60), avgHr: hrCount > 0 ? Math.round(hrSum / hrCount) : null, points: selectedPoints };
   }, [chartData]);
 
-  // FINAL STABLE CLICK HANDLER
-  const handleGlobalClick = (e: React.MouseEvent) => {
-    if (!containerRef.current) return;
-    
-    // Calculate click index from native offset and container width
+  const getIdxFromMouseEvent = (e: React.MouseEvent) => {
+    if (!containerRef.current) return null;
     const rect = containerRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const padding = 10; // AreaChart margin left/right
+    const padding = 10;
     const effectiveWidth = rect.width - padding * 2;
     const xRatio = Math.max(0, Math.min(1, (x - padding) / effectiveWidth));
-    const idx = Math.round(xRatio * (chartData.length - 1));
+    return Math.round(xRatio * (chartData.length - 1));
+  };
 
-    if (isNaN(idx) || !chartData[idx]) return;
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const idx = getIdxFromMouseEvent(e);
+    if (idx === null) return;
+    
+    setIsDragging(true);
+    setRefAreaLeft(idx);
+    setRefAreaRight(idx);
+    setSelectedStats(null);
+    onRangeSelect(null);
+    onPointClick(chartData[idx].raw);
+  };
 
-    if (refAreaLeft === null || (refAreaLeft !== null && refAreaRight !== null)) {
-      setRefAreaLeft(idx);
-      setRefAreaRight(null);
-      setSelectedStats(null);
-      onRangeSelect(null);
-      onPointClick(chartData[idx].raw);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || refAreaLeft === null) return;
+    const idx = getIdxFromMouseEvent(e);
+    if (idx !== null) setRefAreaRight(idx);
+  };
+
+  const handleMouseUp = () => {
+    if (!isDragging || refAreaLeft === null || refAreaRight === null) {
+      setIsDragging(false);
+      return;
+    }
+
+    if (Math.abs(refAreaLeft - refAreaRight) < 5) {
+      // It was just a click, not a significant drag
+      clearSelection();
     } else {
-      setRefAreaRight(idx);
-      const stats = calculateStats(refAreaLeft, idx);
+      const stats = calculateStats(refAreaLeft, refAreaRight);
       setSelectedStats(stats);
       if (stats) onRangeSelect(stats.points);
     }
+    setIsDragging(false);
   };
 
   const clearSelection = () => {
@@ -98,7 +116,10 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
     <div 
       ref={containerRef}
       className="relative w-full h-full bg-white flex flex-col select-none cursor-crosshair overflow-visible p-2 md:p-4"
-      onClick={handleGlobalClick}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={handleMouseUp}
     >
       {selectedStats && (
         <div className="absolute top-[-70px] md:top-[-90px] left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl shadow-2xl flex items-center gap-2 md:gap-8 border border-white/20 z-50 animate-in fade-in zoom-in duration-200 pointer-events-auto">
@@ -184,10 +205,10 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
               <ReferenceLine x={chartData[hoveredIndex].dist} stroke="#3b82f6" strokeWidth={2} strokeDasharray="3 3" />
             )}
 
-            {refAreaLeft !== null && (
+            {refAreaLeft !== null && refAreaRight !== null && (
               <ReferenceArea 
                 x1={chartData[refAreaLeft].dist} 
-                x2={refAreaRight !== null ? chartData[refAreaRight].dist : chartData[refAreaLeft].dist} 
+                x2={chartData[refAreaRight].dist} 
                 fill="#000" fillOpacity={0.05} strokeOpacity={0} 
               />
             )}
@@ -195,7 +216,7 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
         </ResponsiveContainer>
       </div>
       <p className="text-[10px] text-slate-400 text-center mt-1 font-bold uppercase tracking-widest bg-slate-50 py-1 rounded">
-        {refAreaLeft === null ? '點擊圖表設定區間起點' : refAreaRight === null ? '再點擊一次設定終點' : '區間分析完成 (點擊任意處重新選取)'}
+        {isDragging ? '正在拖曳選取區間...' : '按住滑鼠拖曳即可選取剖面路段'}
       </p>
     </div>
   );
