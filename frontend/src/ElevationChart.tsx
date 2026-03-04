@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea, CartesianGrid } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea, CartesianGrid, ReferenceLine } from 'recharts';
 import type { KumanoData, TrackPoint } from './types';
 import { Clock, TrendingUp, Ruler, Heart, TrendingDown } from 'lucide-react';
 
@@ -7,9 +7,10 @@ interface Props {
   data: KumanoData;
   onPointClick: (point: TrackPoint) => void;
   onRangeSelect: (points: TrackPoint[] | null) => void;
+  hoveredPoint: TrackPoint | null;
 }
 
-const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) => {
+const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, hoveredPoint }) => {
   const [refAreaLeft, setRefAreaLeft] = useState<number | null>(null);
   const [refAreaRight, setRefAreaRight] = useState<number | null>(null);
   const [selectedStats, setSelectedStats] = useState<any>(null);
@@ -21,6 +22,11 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
     index: i,
     raw: p
   })), [flattenedTrack]);
+
+  const hoveredIndex = useMemo(() => {
+    if (!hoveredPoint) return null;
+    return chartData.findIndex(d => d.raw === hoveredPoint);
+  }, [hoveredPoint, chartData]);
 
   const calculateStats = useCallback((leftIdx: number, rightIdx: number) => {
     const start = Math.min(leftIdx, rightIdx);
@@ -84,24 +90,39 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
     <div className="relative w-full h-44 md:h-64 bg-white/95 border-t border-slate-200 p-2 md:p-4 flex flex-col select-none">
       {selectedStats && (
         <div className="absolute top-[-65px] md:top-[-85px] left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur text-white px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl shadow-2xl flex items-center gap-2 md:gap-8 border border-white/20 z-[100] animate-in fade-in zoom-in duration-200 pointer-events-auto">
-          <div className="flex items-center gap-1 md:gap-2 border-r border-white/10 pr-2 md:pr-4">
-            <Ruler size={12} className="text-blue-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.dist}k</p>
+          <div className="flex flex-col items-center border-r border-white/10 pr-2 md:pr-4">
+             <div className="flex items-center gap-1 md:gap-2">
+                <Ruler size={12} className="text-blue-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.dist}k</p>
+             </div>
+             <span className="text-[8px] text-slate-400 font-bold uppercase">距離</span>
           </div>
-          <div className="flex items-center gap-1 md:gap-2 border-r border-white/10 pr-2 md:pr-4">
-            <TrendingUp size={12} className="text-emerald-400" /><p className="text-[10px] md:text-sm font-mono font-bold">+{selectedStats.gain}</p>
+          <div className="flex flex-col items-center border-r border-white/10 pr-2 md:pr-4">
+            <div className="flex items-center gap-1 md:gap-2">
+                <TrendingUp size={12} className="text-emerald-400" /><p className="text-[10px] md:text-sm font-mono font-bold">+{selectedStats.gain}</p>
+            </div>
+            <span className="text-[8px] text-slate-400 font-bold uppercase">爬升</span>
           </div>
-          <div className="flex items-center gap-1 md:gap-2 border-r border-white/10 pr-2 md:pr-4">
-            <TrendingDown size={12} className="text-orange-400" /><p className="text-[10px] md:text-sm font-mono font-bold">-{selectedStats.loss}</p>
+          <div className="flex flex-col items-center border-r border-white/10 pr-2 md:pr-4">
+            <div className="flex items-center gap-1 md:gap-2">
+                <TrendingDown size={12} className="text-orange-400" /><p className="text-[10px] md:text-sm font-mono font-bold">-{selectedStats.loss}</p>
+            </div>
+            <span className="text-[8px] text-slate-400 font-bold uppercase">下降</span>
           </div>
-          <div className="flex items-center gap-1 md:gap-2 border-r border-white/10 pr-2 md:pr-4">
-            <Clock size={12} className="text-amber-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.duration}m</p>
+          <div className="flex flex-col items-center border-r border-white/10 pr-2 md:pr-4">
+             <div className="flex items-center gap-1 md:gap-2">
+                <Clock size={12} className="text-amber-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.duration}m</p>
+             </div>
+             <span className="text-[8px] text-slate-400 font-bold uppercase">耗時</span>
           </div>
           {selectedStats.avgHr && (
-            <div className="hidden sm:flex items-center gap-1 md:gap-2 border-r border-white/10 pr-4">
-              <Heart size={12} className="text-rose-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.avgHr}</p>
+            <div className="hidden sm:flex flex-col items-center border-r border-white/10 pr-4">
+              <div className="flex items-center gap-1 md:gap-2">
+                <Heart size={12} className="text-rose-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.avgHr}</p>
+              </div>
+              <span className="text-[8px] text-slate-400 font-bold uppercase">平均心率</span>
             </div>
           )}
-          <button onClick={(e) => { e.stopPropagation(); clearSelection(); }} className="p-1 hover:bg-white/10 rounded-full transition-colors text-white"><span className="text-xs">✕</span></button>
+          <button onClick={(e) => { e.stopPropagation(); clearSelection(); }} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white flex items-center justify-center bg-white/5"><span className="text-xs">✕</span></button>
         </div>
       )}
 
@@ -147,6 +168,11 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect }) 
             <YAxis hide domain={['auto', 'auto']} />
             <Tooltip isAnimationActive={false} wrapperStyle={{ pointerEvents: 'none' }} content={({ active, payload }) => (active && payload && payload.length) ? (<div className="bg-slate-900 text-white p-1.5 rounded text-[9px] font-mono shadow-xl border border-white/10">{payload[0].payload.dist}km | {payload[0].payload.ele}m</div>) : null} />
             <Area type="monotone" dataKey="ele" stroke="url(#selectionStroke)" strokeWidth={3} fill="url(#selectionFill)" isAnimationActive={false} activeDot={{ r: 4, fill: '#3b82f6', stroke: '#fff' }} />
+            
+            {hoveredIndex !== null && (
+              <ReferenceLine x={chartData[hoveredIndex].dist} stroke="#3b82f6" strokeWidth={2} strokeDasharray="3 3" />
+            )}
+
             {refAreaLeft !== null && (
               <ReferenceArea 
                 x1={chartData[refAreaLeft].dist} 

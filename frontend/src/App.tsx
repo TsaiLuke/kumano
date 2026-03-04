@@ -12,6 +12,7 @@ function App() {
   const [activePhotoGroup, setActivePhotoGroup] = useState<PhotoData[] | null>(null);
   const [mapCenterPoint, setMapCenterPoint] = useState<{ lat: number, lon: number, t: number } | null>(null);
   const [rangeSelection, setRangeSelection] = useState<TrackPoint[] | null>(null);
+  const [hoveredPoint, setHoveredPoint] = useState<TrackPoint | null>(null);
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
   const [isChartExpanded, setIsChartExpanded] = useState(true);
@@ -46,6 +47,7 @@ function App() {
 
   const handleRangeSelect = (points: TrackPoint[] | null) => {
     setRangeSelection(points);
+    if (!points) setSelectedSegment(null);
   };
 
   if (loading) {
@@ -75,13 +77,14 @@ function App() {
           setActivePhotoGroup={setActivePhotoGroup}
           mapCenterPoint={mapCenterPoint}
           rangeSelection={rangeSelection}
+          setHoveredPoint={setHoveredPoint}
         />
       </div>
 
       {/* Mobile Toggle Button */}
       <button 
         onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-        className="fixed top-4 left-4 z-[100] p-3 bg-slate-900 text-white rounded-xl shadow-2xl md:hidden active:scale-90 transition-all border border-white/10"
+        className="fixed top-4 left-4 z-50 p-3 bg-slate-900 text-white rounded-xl shadow-2xl md:hidden active:scale-90 transition-all border border-white/10"
       >
         {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
       </button>
@@ -93,7 +96,7 @@ function App() {
             animate={{ x: 0 }}
             exit={{ x: -320 }}
             transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-            className="fixed inset-y-0 left-0 z-[90] md:relative w-80 flex-shrink-0 bg-white shadow-2xl"
+            className="fixed inset-y-0 left-0 z-40 md:relative w-80 flex-shrink-0 bg-white shadow-2xl"
           >
             <div className="h-full pt-20 md:pt-0">
               <Sidebar 
@@ -114,7 +117,7 @@ function App() {
         <div className="flex justify-center w-full pb-4 md:pb-6">
           <button 
             onClick={() => setIsChartExpanded(!isChartExpanded)}
-            className={`pointer-events-auto px-6 py-2.5 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-[0_-10px_25px_rgba(0,0,0,0.3)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all active:scale-95 ${isChartExpanded ? 'mb-0' : 'mb-[100px] md:mb-[40px]'}`}
+            className={`pointer-events-auto px-6 py-2.5 bg-white/95 backdrop-blur border border-slate-200 rounded-xl shadow-[0_-10px_25px_rgba(0,0,0,0.3)] flex items-center gap-2 text-[10px] font-black text-slate-600 transition-all active:scale-95 ${isChartExpanded ? 'mb-0' : 'mb-[100px] md:mb-[40px]'} z-30`}
           >
             {isChartExpanded ? <ChevronDown size={16} className="text-blue-500" /> : <ChevronUp size={16} className="text-blue-500" />}
             {isChartExpanded ? '收起剖面' : '分析海拔數據'}
@@ -126,19 +129,20 @@ function App() {
           initial={false}
           animate={{ height: isChartExpanded ? 'auto' : 0, opacity: isChartExpanded ? 1 : 0 }}
           transition={{ type: 'spring', bounce: 0, duration: 0.4 }}
-          className="bg-white/95 backdrop-blur-md border-t border-slate-200 pointer-events-auto overflow-hidden flex-shrink-0"
+          className="bg-white/95 backdrop-blur-md border-t border-slate-200 pointer-events-auto overflow-hidden flex-shrink-0 z-20"
         >
           <ElevationChart 
             data={data} 
             onPointClick={handleChartPointClick}
             onRangeSelect={handleRangeSelect}
+            hoveredPoint={hoveredPoint}
           />
         </motion.div>
       </main>
 
       {/* Backdrop for mobile sidebar */}
       {isSidebarOpen && (
-        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[80] md:hidden" />
+        <div onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[35] md:hidden" />
       )}
     </div>
   );

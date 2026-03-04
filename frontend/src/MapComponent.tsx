@@ -20,6 +20,7 @@ interface Props {
   setActivePhotoGroup: (group: PhotoData[] | null) => void;
   mapCenterPoint: { lat: number, lon: number, t: number } | null;
   rangeSelection: TrackPoint[] | null;
+  setHoveredPoint: (point: TrackPoint | null) => void;
 }
 
 const MapComponent: React.FC<Props> = ({ 
@@ -29,13 +30,16 @@ const MapComponent: React.FC<Props> = ({
   activePhotoGroup,
   setActivePhotoGroup,
   mapCenterPoint,
-  rangeSelection
+  rangeSelection,
+  setHoveredPoint
 }) => {
   const mapRef = useRef<MapRef>(null);
   const [zoom, setZoom] = useState(13);
   const [currentPhotoIdx, setCurrentPhotoIdx] = useState(0);
   const [mapStyle, setMapStyle] = useState<keyof typeof MAP_STYLES>('outdoors');
+  const [exaggeration, setExaggeration] = useState(1.0);
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [hoveredSegment, setHoveredSegment] = useState<SegmentData | null>(null);
 
   useEffect(() => {
     const handleResize = () => setWindowWidth(window.innerWidth);
@@ -89,12 +93,35 @@ const MapComponent: React.FC<Props> = ({
   const visibleGroups = (data.photoGroups || []).filter((_, i) => {
     if (zoom > 16) return true;
     if (zoom > 14) return i % 2 === 0;
-    return i % 8 === 0;
+    if (zoom > 12) return i % 5 === 0;
+    return i % 12 === 0;
   });
 
   const activePhoto = activePhotoGroup && activePhotoGroup[currentPhotoIdx] 
     ? activePhotoGroup[currentPhotoIdx] 
     : (activePhotoGroup ? activePhotoGroup[0] : null);
+
+  const selectedSegmentData = useMemo(() => 
+    data.segments.find(s => s.segment_number === selectedSegment), 
+  [data.segments, selectedSegment]);
+
+  const handleMouseMove = (e: any) => {
+    if (e.features && e.features.length > 0) {
+      const feature = e.features[0];
+      if (feature.layer.id === 'track-layer' || feature.layer.id === 'highlight-layer') {
+        const { lng, lat } = e.lngLat;
+        // Find nearest point in track
+        const allPoints = (data.trackSegments || []).flat();
+        let minDest = Infinity;
+        let nearestPoint = null;
+        for (const p of allPoints) {
+          const d = Math.pow(p.lon - lng, 2) + Math.pow(p.lat - lat, 2);
+          if (d < minDest) { minDest = d; nearestPoint = p; }
+        }
+        if (nearestPoint) setHoveredPoint(nearestPoint);
+      }
+    }
+  };
 
   return (
     <div className="relative w-full h-full bg-slate-100">
@@ -102,10 +129,13 @@ const MapComponent: React.FC<Props> = ({
         ref={mapRef}
         initialViewState={{ latitude: data.trackSegments?.[0]?.[0]?.lat || 33.7125, longitude: data.trackSegments?.[0]?.[0]?.lon || 135.4536, zoom: isMobile ? 11 : 13, pitch: 45, bearing: 0 }}
         onZoom={e => setZoom(e.viewState.zoom)}
-        onClick={() => setActivePhotoGroup(null)}
+        onClick={() => { setActivePhotoGroup(null); onSegmentClick({ segment_number: -1 } as any); }}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={() => setHoveredPoint(null)}
+        interactiveLayerIds={['track-layer', 'highlight-layer']}
         mapStyle={MAP_STYLES[mapStyle]}
         mapboxAccessToken={MAPBOX_TOKEN}
-        terrain={{ source: 'mapbox-dem', exaggeration: 1.5 }}
+        terrain={{ source: 'mapbox-dem', exaggeration: exaggeration }}
       >
         <Source id="mapbox-dem" type="raster-dem" url="mapbox://mapbox.mapbox-terrain-dem-v1" tileSize={512} maxzoom={14} />
         <Source id="track-source" type="geojson" data={trackGeoJSON}>
@@ -121,7 +151,7 @@ const MapComponent: React.FC<Props> = ({
         {(data.landmarks || []).map((lm, i) => (
           <Marker key={`lm-${i}`} latitude={lm.lat} longitude={lm.lon} anchor="bottom">
             <div className="flex flex-col items-center group">
-              <div className="bg-white px-2 py-1 rounded shadow-lg border border-slate-200 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none text-[10px] font-bold text-slate-800">{lm.name}</div>
+              <div className="bg-white px-2 py-1 rounded shadow-lg border border-slate-200 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none text-[10px] font-bold text-slate-800 z-50">{lm.name}</div>
               <div className="p-1.5 bg-indigo-600 rounded-full border-2 border-white shadow-xl scale-90 md:scale-110"><MapPin size={isMobile ? 14 : 20} className="text-white fill-white/20" /></div>
             </div>
           </Marker>
@@ -131,31 +161,56 @@ const MapComponent: React.FC<Props> = ({
           <React.Fragment key={`dm-${i}`}>
             <Marker latitude={dm.start.lat} longitude={dm.start.lon} anchor="bottom">
               <div className="flex flex-col items-center scale-90 md:scale-125">
-                <div className="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full mb-1 shadow-lg border border-white">D{dm.day}</div>
+                <div className="bg-emerald-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full mb-1 shadow-lg border border-white">D{dm.day} START</div>
                 <Navigation size={14} className="text-emerald-600 fill-emerald-600" />
               </div>
             </Marker>
             <Marker latitude={dm.end.lat} longitude={dm.end.lon} anchor="bottom">
               <div className="flex flex-col items-center scale-90 md:scale-125">
-                <div className="bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full mb-1 shadow-lg border border-white">D{dm.day}</div>
+                <div className="bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded-full mb-1 shadow-lg border border-white">D{dm.day} END</div>
                 <Flag size={14} className="text-rose-600 fill-rose-600" />
               </div>
             </Marker>
           </React.Fragment>
         ))}
 
-        <div className="absolute bottom-4 right-4 z-10">
+        <div className="absolute bottom-4 right-4 z-10 flex flex-col gap-2">
+          <button onClick={e => { e.stopPropagation(); setExaggeration(prev => prev === 1.0 ? 1.5 : 1.0); }}
+            className={`flex items-center gap-2 px-3 py-2 shadow-2xl rounded-xl text-xs font-black border transition-all ${exaggeration > 1.0 ? 'bg-blue-600 text-white border-blue-400' : 'bg-white/95 text-slate-700 border-slate-200'}`}>
+            <TrendingUp size={16} /> {exaggeration > 1.0 ? '3D 增強中' : '標準地形'}
+          </button>
           <button onClick={e => { e.stopPropagation(); setMapStyle(prev => prev === 'outdoors' ? 'satellite' : 'outdoors'); }}
             className="flex items-center gap-2 px-3 py-2 bg-white/95 backdrop-blur shadow-2xl rounded-xl text-xs font-black text-slate-700 border border-slate-200">
-            <Layers size={16} /> {mapStyle === 'outdoors' ? '衛星' : '地圖'}
+            <Layers size={16} /> {mapStyle === 'outdoors' ? '切換衛星' : '切換地圖'}
           </button>
         </div>
 
         {(data.segments || []).map(seg => (
           <Marker key={`seg-${seg.segment_number}`} latitude={seg.mid_lat} longitude={seg.mid_lon} anchor="bottom" onClick={e => { e.originalEvent.stopPropagation(); onSegmentClick(seg); }}>
-            <div className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-white/80 shadow-lg cursor-pointer text-[10px] font-black text-white transition-all hover:scale-125 ${selectedSegment === seg.segment_number ? 'bg-blue-600 scale-110 ring-4 ring-blue-500/30' : 'bg-slate-400/80 backdrop-blur-[2px]'}`}>{seg.segment_number}</div>
+            <div 
+              onMouseEnter={() => setHoveredSegment(seg)}
+              onMouseLeave={() => setHoveredSegment(null)}
+              className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-white/80 shadow-lg cursor-pointer text-[10px] font-black text-white transition-all hover:scale-125 ${selectedSegment === seg.segment_number ? 'bg-blue-600 scale-110 ring-4 ring-blue-500/30' : 'bg-slate-400/80 backdrop-blur-[2px]'}`}>
+              {seg.segment_number}
+            </div>
           </Marker>
         ))}
+
+        {selectedSegmentData && (
+          <Popup latitude={selectedSegmentData.mid_lat} longitude={selectedSegmentData.mid_lon} onClose={() => onSegmentClick({ segment_number: -1 } as any)} closeButton={false} anchor="top" className="z-50 segment-popup">
+            <div className="p-3 bg-white rounded-lg shadow-xl border border-slate-100 min-w-[140px]">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-black text-blue-600 uppercase">第 {selectedSegmentData.segment_number} 公里</span>
+                <span className="text-[10px] font-bold bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">{selectedSegmentData.pace}/km</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-[10px] font-bold text-slate-600">
+                <div className="flex items-center gap-1"><TrendingUp size={10} className="text-emerald-500"/> +{selectedSegmentData.gain}m</div>
+                <div className="flex items-center gap-1"><TrendingDown size={10} className="text-orange-500"/> -{selectedSegmentData.loss}m</div>
+                {selectedSegmentData.avg_hr && <div className="flex items-center gap-1 col-span-2"><Heart size={10} className="text-rose-500 fill-rose-500/20"/> 平均心率 {selectedSegmentData.avg_hr} bpm</div>}
+              </div>
+            </div>
+          </Popup>
+        )}
 
         {visibleGroups.map((group, idx) => (
           <Marker key={`photo-group-${idx}`} latitude={group[0].lat} longitude={group[0].lon} anchor="center" onClick={e => { e.originalEvent.stopPropagation(); setActivePhotoGroup(group); }}>
