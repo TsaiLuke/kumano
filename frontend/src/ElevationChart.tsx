@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea, CartesianGrid, ReferenceLine } from 'recharts';
 import type { KumanoData, TrackPoint } from './types';
 import { Clock, TrendingUp, Ruler, Heart, TrendingDown } from 'lucide-react';
@@ -11,6 +11,7 @@ interface Props {
 }
 
 const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, hoveredPoint }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [refAreaLeft, setRefAreaLeft] = useState<number | null>(null);
   const [refAreaRight, setRefAreaRight] = useState<number | null>(null);
   const [selectedStats, setSelectedStats] = useState<any>(null);
@@ -22,11 +23,6 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
     index: i,
     raw: p
   })), [flattenedTrack]);
-
-  const hoveredIndex = useMemo(() => {
-    if (!hoveredPoint) return null;
-    return chartData.findIndex(d => d.raw === hoveredPoint);
-  }, [hoveredPoint, chartData]);
 
   const calculateStats = useCallback((leftIdx: number, rightIdx: number) => {
     const start = Math.min(leftIdx, rightIdx);
@@ -46,21 +42,19 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
     return { dist: dist.toFixed(2), gain: Math.round(gain), loss: Math.round(loss), duration: Math.floor(durationSec / 60), avgHr: hrCount > 0 ? Math.round(hrSum / hrCount) : null, points: selectedPoints };
   }, [chartData]);
 
-  const handleChartClick = (e: any) => {
-    // Robust Manual Calculation:
-    // If Recharts fails to provide activeTooltipIndex, we calculate it ourselves
-    let idx = e?.activeTooltipIndex;
+  // FINAL STABLE CLICK HANDLER
+  const handleGlobalClick = (e: React.MouseEvent) => {
+    if (!containerRef.current) return;
     
-    if (typeof idx !== 'number' && e?.chartX) {
-      // Manual fallback using mouse position vs container width
-      const chartWidth = e.currentTarget?.state?.prevWidth || e.currentTarget?.current?.offsetWidth || 800;
-      const padding = 10; // Left/Right margin in AreaChart
-      const effectiveWidth = chartWidth - padding * 2;
-      const xRatio = Math.max(0, Math.min(1, (e.chartX - padding) / effectiveWidth));
-      idx = Math.round(xRatio * (chartData.length - 1));
-    }
+    // Calculate click index from native offset and container width
+    const rect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const padding = 10; // AreaChart margin left/right
+    const effectiveWidth = rect.width - padding * 2;
+    const xRatio = Math.max(0, Math.min(1, (x - padding) / effectiveWidth));
+    const idx = Math.round(xRatio * (chartData.length - 1));
 
-    if (typeof idx !== 'number' || !chartData[idx]) return;
+    if (isNaN(idx) || !chartData[idx]) return;
 
     if (refAreaLeft === null || (refAreaLeft !== null && refAreaRight !== null)) {
       setRefAreaLeft(idx);
@@ -83,6 +77,11 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
     onRangeSelect(null);
   };
 
+  const hoveredIndex = useMemo(() => {
+    if (!hoveredPoint) return null;
+    return chartData.findIndex(d => d.raw === hoveredPoint);
+  }, [hoveredPoint, chartData]);
+
   const selectionStartPercent = useMemo(() => {
     if (refAreaLeft === null || refAreaRight === null) return 0;
     return (Math.min(refAreaLeft, refAreaRight) / (chartData.length - 1)) * 100;
@@ -96,9 +95,13 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
   if (chartData.length === 0) return null;
 
   return (
-    <div className="relative w-full h-full bg-white flex flex-col select-none overflow-hidden">
+    <div 
+      ref={containerRef}
+      className="relative w-full h-full bg-white flex flex-col select-none cursor-crosshair overflow-visible p-2 md:p-4"
+      onClick={handleGlobalClick}
+    >
       {selectedStats && (
-        <div className="absolute top-[-70px] md:top-[-90px] left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl shadow-2xl flex items-center gap-2 md:gap-8 border border-white/20 z-50 animate-in fade-in zoom-in duration-200">
+        <div className="absolute top-[-70px] md:top-[-90px] left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl shadow-2xl flex items-center gap-2 md:gap-8 border border-white/20 z-50 animate-in fade-in zoom-in duration-200 pointer-events-auto">
           <div className="flex flex-col items-center border-r border-white/10 pr-2 md:pr-4">
              <div className="flex items-center gap-1 md:gap-2">
                 <Ruler size={12} className="text-blue-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.dist}k</p>
@@ -135,11 +138,10 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
         </div>
       )}
 
-      <div className="flex-1 w-full min-h-0 relative">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className="flex-1 w-full min-h-0 relative pointer-events-none">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <AreaChart 
             data={chartData} 
-            onClick={handleChartClick}
             margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
           >
             <defs>
