@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceArea, CartesianGrid, ReferenceLine } from 'recharts';
 import type { KumanoData, TrackPoint } from './types';
 import { Clock, TrendingUp, Ruler, Heart, TrendingDown } from 'lucide-react';
