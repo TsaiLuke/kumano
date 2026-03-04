@@ -3,7 +3,7 @@ import type { KumanoData, PhotoData, SegmentData, TrackPoint } from './types';
 import MapComponent from './MapComponent';
 import Sidebar from './Sidebar';
 import ElevationChart from './ElevationChart';
-import { Menu, ChevronUp, ChevronDown, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 function App() {
@@ -15,7 +15,6 @@ function App() {
   const [hoveredPoint, setHoveredPoint] = useState<TrackPoint | null>(null);
   
   const [isSidebarOpen, setIsSidebarOpen] = useState(window.innerWidth > 768);
-  const [isChartExpanded, setIsChartExpanded] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
