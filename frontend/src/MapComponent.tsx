@@ -128,7 +128,13 @@ const MapComponent: React.FC<Props> = ({
         ref={mapRef}
         initialViewState={{ latitude: data.trackSegments?.[0]?.[0]?.lat || 33.7125, longitude: data.trackSegments?.[0]?.[0]?.lon || 135.4536, zoom: isMobile ? 11 : 13, pitch: 45, bearing: 0 }}
         onZoom={e => setZoom(e.viewState.zoom)}
-        onClick={() => { setActivePhotoGroup(null); onSegmentClick({ segment_number: -1 } as any); }}
+        onClick={(e) => {
+          // Only clear if we clicked the map canvas itself, not a marker/popup
+          if ((e.originalEvent.target as HTMLElement).classList.contains('mapboxgl-canvas')) {
+            setActivePhotoGroup(null);
+            onSegmentClick({ segment_number: null } as any);
+          }
+        }}
         onMouseMove={handleMouseMove}
         onMouseLeave={() => setHoveredPoint(null)}
         interactiveLayerIds={['track-layer', 'highlight-layer']}

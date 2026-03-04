@@ -36,6 +36,10 @@ function App() {
   }, []);
 
   const handleSegmentClick = (segment: SegmentData) => {
+    if (!segment || segment.segment_number === null) {
+      setSelectedSegment(null);
+      return;
+    }
     setSelectedSegment(segment.segment_number);
     setMapCenterPoint({ lat: segment.mid_lat, lon: segment.mid_lon, t: Date.now() });
     if (window.innerWidth < 768) setIsSidebarOpen(false);

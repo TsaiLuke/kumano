@@ -170,7 +170,7 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
             <Area type="monotone" dataKey="ele" stroke="url(#selectionStroke)" strokeWidth={3} fill="url(#selectionFill)" isAnimationActive={false} activeDot={{ r: 4, fill: '#3b82f6', stroke: '#fff' }} />
             
             {hoveredIndex !== null && (
-              <ReferenceLine x={chartData[hoveredIndex].dist} stroke="#3b82f6" strokeWidth={2} strokeDasharray="3 3" />
+              <ReferenceLine x={chartData[hoveredIndex].dist} stroke="#3b82f6" strokeWidth={2} strokeDasharray="3 3" style={{ pointerEvents: 'none' }} />
             )}
 
             {refAreaLeft !== null && (
