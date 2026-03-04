@@ -46,19 +46,23 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
     return { dist: dist.toFixed(2), gain: Math.round(gain), loss: Math.round(loss), duration: Math.floor(durationSec / 60), avgHr: hrCount > 0 ? Math.round(hrSum / hrCount) : null, points: selectedPoints };
   }, [chartData]);
 
-  const handleChartMouseDown = (e: any) => {
+  const handleChartClick = (e: any) => {
     const idx = e?.activeTooltipIndex;
-    if (typeof idx !== 'number') return;
+    if (typeof idx !== 'number' || !chartData[idx]) return;
 
     if (refAreaLeft === null || (refAreaLeft !== null && refAreaRight !== null)) {
-      // Start new selection (either first time or after a complete selection)
-      clearSelection();
+      // Step 1: Start selection
       setRefAreaLeft(idx);
+      setRefAreaRight(null);
+      setSelectedStats(null);
+      onRangeSelect(null);
       onPointClick(chartData[idx].raw);
     } else {
-      // Complete the selection
-      setRefAreaRight(idx);
-      const stats = calculateStats(refAreaLeft, idx);
+      // Step 2: Complete selection
+      const start = refAreaLeft;
+      const end = idx;
+      setRefAreaRight(end);
+      const stats = calculateStats(start, end);
       setSelectedStats(stats);
       if (stats) onRangeSelect(stats.points);
     }
@@ -84,9 +88,9 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
   if (chartData.length === 0) return null;
 
   return (
-    <div className="relative w-full h-44 md:h-64 bg-white/95 border-t border-slate-200 p-2 md:p-4 flex flex-col select-none pointer-events-auto">
+    <div className="relative w-full h-full bg-white p-2 md:p-4 flex flex-col select-none overflow-visible">
       {selectedStats && (
-        <div className="absolute top-[-65px] md:top-[-85px] left-1/2 -translate-x-1/2 bg-slate-900/95 backdrop-blur text-white px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl shadow-2xl flex items-center gap-2 md:gap-8 border border-white/20 z-[100] animate-in fade-in zoom-in duration-200 pointer-events-auto">
+        <div className="absolute top-[-70px] md:top-[-90px] left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl shadow-2xl flex items-center gap-2 md:gap-8 border border-white/20 z-50 animate-in fade-in zoom-in duration-200">
           <div className="flex flex-col items-center border-r border-white/10 pr-2 md:pr-4">
              <div className="flex items-center gap-1 md:gap-2">
                 <Ruler size={12} className="text-blue-400" /><p className="text-[10px] md:text-sm font-mono font-bold">{selectedStats.dist}k</p>
@@ -119,31 +123,30 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
               <span className="text-[8px] text-slate-400 font-bold uppercase">平均心率</span>
             </div>
           )}
-          <button onClick={(e) => { e.stopPropagation(); clearSelection(); }} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white flex items-center justify-center bg-white/5 pointer-events-auto"><span className="text-xs">✕</span></button>
+          <button onClick={(e) => { e.stopPropagation(); clearSelection(); }} className="p-2 hover:bg-white/10 rounded-full transition-colors text-white flex items-center justify-center bg-white/5"><span className="text-xs">✕</span></button>
         </div>
       )}
 
-      <div className="flex-1 min-h-0 cursor-crosshair">
+      <div className="flex-1 min-h-0">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart 
             data={chartData} 
-            onMouseDown={handleChartMouseDown}
+            onClick={handleChartClick}
             margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
-            style={{ pointerEvents: 'auto' }}
           >
             <defs>
               <linearGradient id="selectionFill" x1="0" y1="0" x2="1" y2="0">
                 {refAreaLeft !== null && refAreaRight !== null ? (
                   <>
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.1} />
-                    <stop offset={`${selectionStartPercent}%`} stopColor="#3b82f6" stopOpacity={0.1} />
-                    <stop offset={`${selectionStartPercent}%`} stopColor="#f43f5e" stopOpacity={0.4} />
-                    <stop offset={`${selectionEndPercent}%`} stopColor="#f43f5e" stopOpacity={0.4} />
-                    <stop offset={`${selectionEndPercent}%`} stopColor="#3b82f6" stopOpacity={0.1} />
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.1} />
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.05} />
+                    <stop offset={`${selectionStartPercent}%`} stopColor="#3b82f6" stopOpacity={0.05} />
+                    <stop offset={`${selectionStartPercent}%`} stopColor="#f43f5e" stopOpacity={0.3} />
+                    <stop offset={`${selectionEndPercent}%`} stopColor="#f43f5e" stopOpacity={0.3} />
+                    <stop offset={`${selectionEndPercent}%`} stopColor="#3b82f6" stopOpacity={0.05} />
+                    <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.05} />
                   </>
                 ) : (
-                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.2} />
+                  <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.15} />
                 )}
               </linearGradient>
               <linearGradient id="selectionStroke" x1="0" y1="0" x2="1" y2="0">
@@ -161,14 +164,14 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
                 )}
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" style={{ pointerEvents: 'none' }} />
+            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
             <XAxis dataKey="dist" hide />
             <YAxis hide domain={['auto', 'auto']} />
-            <Tooltip isAnimationActive={false} wrapperStyle={{ pointerEvents: 'none' }} content={({ active, payload }) => (active && payload && payload.length) ? (<div className="bg-slate-900 text-white p-1.5 rounded text-[9px] font-mono shadow-xl border border-white/10">{payload[0].payload.dist}km | {payload[0].payload.ele}m</div>) : null} />
-            <Area type="monotone" dataKey="ele" stroke="url(#selectionStroke)" strokeWidth={3} fill="url(#selectionFill)" isAnimationActive={false} activeDot={{ r: 4, fill: '#3b82f6', stroke: '#fff' }} style={{ pointerEvents: 'none' }} />
+            <Tooltip isAnimationActive={false} wrapperStyle={{ pointerEvents: 'none', zIndex: 100 }} content={({ active, payload }) => (active && payload && payload.length) ? (<div className="bg-slate-900 text-white p-1.5 rounded text-[9px] font-mono shadow-xl border border-white/10">{payload[0].payload.dist}km | {payload[0].payload.ele}m</div>) : null} />
+            <Area type="monotone" dataKey="ele" stroke="url(#selectionStroke)" strokeWidth={3} fill="url(#selectionFill)" isAnimationActive={false} activeDot={{ r: 4, fill: '#3b82f6', stroke: '#fff' }} />
             
             {hoveredIndex !== null && (
-              <ReferenceLine x={chartData[hoveredIndex].dist} stroke="#3b82f6" strokeWidth={2} strokeDasharray="3 3" style={{ pointerEvents: 'none' }} />
+              <ReferenceLine x={chartData[hoveredIndex].dist} stroke="#3b82f6" strokeWidth={2} strokeDasharray="3 3" />
             )}
 
             {refAreaLeft !== null && (
@@ -176,14 +179,13 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
                 x1={chartData[refAreaLeft].dist} 
                 x2={refAreaRight !== null ? chartData[refAreaRight].dist : chartData[refAreaLeft].dist} 
                 fill="#000" fillOpacity={0.05} strokeOpacity={0} 
-                style={{ pointerEvents: 'none' }}
               />
             )}
           </AreaChart>
         </ResponsiveContainer>
       </div>
-      <p className="text-[9px] text-slate-400 text-center mt-1 font-bold uppercase tracking-widest">
-        {refAreaLeft === null ? '點擊圖表設定區間起點' : refAreaRight === null ? '再點擊一次設定終點' : '區間分析完成 (點擊圖表重新選取)'}
+      <p className="text-[10px] text-slate-400 text-center mt-1 font-bold uppercase tracking-widest bg-slate-50 py-1 rounded">
+        {refAreaLeft === null ? '點擊圖表設定區間起點' : refAreaRight === null ? '再點擊一次設定終點' : '區間分析完成 (點擊任意處重新選取)'}
       </p>
     </div>
   );
