@@ -187,8 +187,6 @@ const MapComponent: React.FC<Props> = ({
         {(data.segments || []).map(seg => (
           <Marker key={`seg-${seg.segment_number}`} latitude={seg.mid_lat} longitude={seg.mid_lon} anchor="bottom" onClick={e => { e.originalEvent.stopPropagation(); onSegmentClick(seg); }}>
             <div 
-              onMouseEnter={() => setHoveredSegment(seg)}
-              onMouseLeave={() => setHoveredSegment(null)}
               className={`flex items-center justify-center w-8 h-8 rounded-full border-2 border-white/80 shadow-lg cursor-pointer text-[10px] font-black text-white transition-all hover:scale-125 ${selectedSegment === seg.segment_number ? 'bg-blue-600 scale-110 ring-4 ring-blue-500/30' : 'bg-slate-400/80 backdrop-blur-[2px]'}`}>
               {seg.segment_number}
             </div>
