@@ -47,22 +47,30 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
   }, [chartData]);
 
   const handleChartClick = (e: any) => {
-    const idx = e?.activeTooltipIndex;
+    // Robust Manual Calculation:
+    // If Recharts fails to provide activeTooltipIndex, we calculate it ourselves
+    let idx = e?.activeTooltipIndex;
+    
+    if (typeof idx !== 'number' && e?.chartX) {
+      // Manual fallback using mouse position vs container width
+      const chartWidth = e.currentTarget?.state?.prevWidth || e.currentTarget?.current?.offsetWidth || 800;
+      const padding = 10; // Left/Right margin in AreaChart
+      const effectiveWidth = chartWidth - padding * 2;
+      const xRatio = Math.max(0, Math.min(1, (e.chartX - padding) / effectiveWidth));
+      idx = Math.round(xRatio * (chartData.length - 1));
+    }
+
     if (typeof idx !== 'number' || !chartData[idx]) return;
 
     if (refAreaLeft === null || (refAreaLeft !== null && refAreaRight !== null)) {
-      // Step 1: Start selection
       setRefAreaLeft(idx);
       setRefAreaRight(null);
       setSelectedStats(null);
       onRangeSelect(null);
       onPointClick(chartData[idx].raw);
     } else {
-      // Step 2: Complete selection
-      const start = refAreaLeft;
-      const end = idx;
-      setRefAreaRight(end);
-      const stats = calculateStats(start, end);
+      setRefAreaRight(idx);
+      const stats = calculateStats(refAreaLeft, idx);
       setSelectedStats(stats);
       if (stats) onRangeSelect(stats.points);
     }
@@ -88,7 +96,7 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
   if (chartData.length === 0) return null;
 
   return (
-    <div className="relative w-full h-full bg-white p-2 md:p-4 flex flex-col select-none overflow-visible">
+    <div className="relative w-full h-full bg-white flex flex-col select-none overflow-hidden">
       {selectedStats && (
         <div className="absolute top-[-70px] md:top-[-90px] left-1/2 -translate-x-1/2 bg-slate-900 text-white px-3 py-2 md:px-5 md:py-2.5 rounded-xl md:rounded-2xl shadow-2xl flex items-center gap-2 md:gap-8 border border-white/20 z-50 animate-in fade-in zoom-in duration-200">
           <div className="flex flex-col items-center border-r border-white/10 pr-2 md:pr-4">
@@ -127,12 +135,12 @@ const ElevationChart: React.FC<Props> = ({ data, onPointClick, onRangeSelect, ho
         </div>
       )}
 
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 w-full min-h-0 relative">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart 
             data={chartData} 
             onClick={handleChartClick}
-            margin={{ top: 10, right: 10, left: 0, bottom: 5 }}
+            margin={{ top: 10, right: 10, left: 10, bottom: 5 }}
           >
             <defs>
               <linearGradient id="selectionFill" x1="0" y1="0" x2="1" y2="0">
